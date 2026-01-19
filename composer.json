@@ -1,0 +1,10 @@
+{
+    "name": "webdev4/kiwi-care-extra",
+    "autoload": {
+        "files": [
+            "utils/kc_helpers.php"
+        ]
+    },
+    "require": {}
+    
+}
