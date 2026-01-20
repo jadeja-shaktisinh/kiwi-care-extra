@@ -1,253 +1,289 @@
+# Kiwi Care Extra Plugin – Functionality Overview
 
-** This extra plugin adds more to  functionlity **
+> **This extra plugin adds additional functionality on top of the core KiwiCare and KiwiCare Pro plugins.**
 
+---
 
-functionality added
+## Summary of Added / Modified Functionality
 
-adding clinic to all doctor when new clinic is added
-adding clinic  for all doctor in session 
-and deleting session when clinic is deleted
-GUI changes with Vue.js
+- Adding a clinic to all doctors when a new clinic is created  
+- Adding clinics for all doctors in sessions and deleting sessions when a clinic is deleted  
+- GUI changes using Vue.js  
+- Hub admin functionality  
+- Fixes required after KiwiCare and KiwiCare Pro plugin updates  
+  - GET requests returning errors  
+  - Clinic doctors, patients, etc. not being added  
 
-hub admin functionality
+> **Note:**  
+> Not all functionality exists entirely inside this plugin. Some logic is still implemented using snippets created by a previous developer.
 
-fixes after kiwicare and kiwicare-pro  plugin are updated
+---
 
-every get request gets error
-clinic doctors etc are not added
+## How Each Functionality Is Implemented
 
+---
 
+## 1. Adding Clinic to All Doctors When a New Clinic Is Added
 
-Not all functionlities are  in this plugin but some are added from  snippets by previous developer 
+### Before
+- Clinic was added to all doctors using the `add_to_all_doctors` action.
+- This action was defined via a snippet.
+- The action was triggered directly inside core plugin files.
 
+### After
+- The same `add_to_all_doctors` action is reused.
+- It has been **removed from core plugin files**.
+- The action is now implemented inside the extra plugin:
 
-how each functionality is added
+wp-content/plugins/kiwi-care-extra/kiwi-care-extra.php
 
+markdown
+Copy code
 
+- The action is triggered using `do_action()` inside the `kcpro_save_clinic` filter.
+- The `kcpro_save_clinic` filter exists in:
 
-adding clinic to all doctor when new clinic is added 
+wp-content/plugins/kivicare-clinic-management-system/app/controllers/KCClinicController.php
+(Line 320)
 
-before 
-    it was added with add_to_all_doctors action 
+yaml
+Copy code
 
-    this action is added with snippet and was used in core files
+---
 
-after 
+## 2. Adding Clinic for All Doctors in Session & Deleting Session
 
-    we used this same action but removed it from core file 
+### Implementation Details
+- This functionality is handled using two actions:
+  - `addsessions`
+  - `delsessions`
+- Both actions were originally added via snippets.
+- These actions are used directly inside core plugin files.
 
-    and added in wp-content/plugins/kiwi-care-extra/kiwi-care-extra.php
+### Limitation
+- There was **no available filter or action** provided by KiwiCare to implement this externally.
+- Because of this, modifying core files was unavoidable.
 
-    in kcpro_save_clinic filter we used this same action with do_actions
+### Core File Changes
+Used inside:
 
-    kcpro_save_clinic filter is in wp-content/plugins/kivicare-clinic-management-system/app/controllers/KCClinicController.php
-    line 320
+wp-content/plugins/kivicare-clinic-management-system/app/controllers/KCClinicSessionController.php
 
-adding clinic  for all doctor in session and delete session
+yaml
+Copy code
 
-        this functionality is added with addsessions and for delete delsessions
+- `save()` method → Line 227  
+- `delete()` method → Line 256  
 
-        both added in snippet 
+---
 
-        and used in core files
+## 3. GUI Changes with Vue.js
 
-        we were not able to find any way to implement this without changin core files
+### Before
+- Vue.js source code and build files were part of the core plugin.
 
-        this both action are used in 
+### After
+- Vue.js code has been **removed from the core plugin**.
+- It is now fully managed inside the extra plugin.
 
-        wp-content/plugins/kivicare-clinic-management-system/app/controllers/KCClinicSessionController.php
-        save() and delete() function of the class KCClinicSessionController
-        line 227 and 256
+### File Structure
 
+resources/js
+resources/scss
+assets/js (build files)
 
-GUI changes with Vue.js
+makefile
+Copy code
 
-before
+### Script Override Logic
 
-    before vue.js code and its build files were in core plugin 
+In:
 
-after 
-
-    we removed it from core plugin added in extra plugin
-
-    in resoure/js and css in resource/scss
-
-    build files are in assests/js
-
-    wp-content/plugins/kiwi-care-extra/kiwi-care-extra.php 
-
-    add_action(
-			'admin_enqueue_scripts',
-			array( $this, 'dequeue_original_scripts' ),
-			999
-		);
-	add_action(
-			'wp_print_scripts',
-			array( $this, 'enqueue_custom_scripts' ),
-			10
-		);
-	add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_front_scripts' ) );
-
-    are used to overide orignal js files with our build files 
-
-
-hub admin functionality
-
-before 
-
-    wp-content/plugins/kivicare-clinic-management-system/app/database/kc-clinic-db.php 
-    new field for hub hub_admin_email was added 
-
-    and most of code was added via core files
-
-after 
-
-    we were not able to implement this functionlity through our code as kiwicare don't provide many filter or action to customize it without changing core files
-    //added custom code for hub admin.
-    we have put above comment at every channge we did for hub admin
-    changes we made 
-
-    wp-content/plugins/kivicare-clinic-management-system/app/database/kc-clinic-db.php 
-    line 39 'hub_admin_email' => 'varchar(255) NULL', added
-
-
-    wp-content/plugins/kivicare-clinic-management-system/app/controllers/KCAppointmentController.php
-    line 113 
-
-    global $current_user;
-    get_currentuserinfo();
-    $hubadminemail = (string) $current_user->user_email; 
-    added 
-
-    line 166
-    $user = wp_get_current_user();
-    if ( !(in_array( 'kiviCare_doctor', (array) $user->roles ) ) && !(in_array( 'kiviCare_clinic_admin', (array) $user->roles ) ) && !(in_array( 'kiviCare_patient', (array) $user->roles ) ) && ($current_user->user_email == 'alex@drapersolutions.com' || $current_user->user_email == 'info@paradiseproductdevelopment.com')) {
-        $query .= " AND {$clinics_table}.hub_admin_email={$hubadminemail} ";
-    }
-    added
-
-    line 936
-
-    $current_user = wp_get_current_user();
-    $hubadminemail = $current_user->user_email;
-    if (in_array( 'hub', (array) $current_user->roles )){
-    $data_filter.=" AND $clinics_table.hub_admin_email='{$hubadminemail}' ";
-    } 
-
-    added
-
-
-    wp-content/plugins/kivicare-clinic-management-system/app/controllers/KCClinicController.php
-
-    line 48 
-     $current_user = wp_get_current_user();
-	
-	$hubadminemail = (string) $current_user->user_email;
-	
-	if ($current_user->user_email == 'alex@drapersolutions.com' || $current_user->user_email == 'info@paradiseproductdevelopment.com'){
-		$condition = " WHERE 0=0";
-	}
-	else{
-	$condition = " WHERE clinic.hub_admin_email='".$hubadminemail."'" ;
-	}
-
-    added 
-
-    wp-content/plugins/kivicare-clinic-management-system/app/controllers/KCHomeController.php
-    line 471 
-    global $current_user;
-	get_currentuserinfo();
-    $hubadminemail = (string) $current_user->user_email;
-    if($current_user_login == 'administrator' && ($current_user->user_email !== 'alex@drapersolutions.com' || $current_user->user_email !== 'info@paradiseproductdevelopment.com')){
-        $clinic_condition = " AND hub_admin_email =".$hubadminemail;
-    }
-
-    added 
-
-    wp-content/plugins/kivicare-clinic-management-system/app/controllers/KCPatientEncounterController.php
-    line 176 
-    $current_user = wp_get_current_user();
-
-		$hubadminemail = (string) $current_user->user_email;
-
-		if ( ( in_array( 'administrator', (array) $current_user->roles ) ) && ( $current_user->user_email != 'alex@drapersolutions.com' || $current_user->user_email != 'info@paradiseproductdevelopment.com' ) ) {
-
-			$common_query = " FROM  {$patient_encounter_table}
-		       LEFT JOIN {$users_table} doctors
-		              ON {$patient_encounter_table}.doctor_id = doctors.id
-		       LEFT JOIN {$users_table} patients
-		              ON {$patient_encounter_table}.patient_id = patients.id
-		       LEFT JOIN {$clinics_table}
-		              ON {$patient_encounter_table}.clinic_id = {$clinics_table}.id 
-            WHERE 0 = 0  {$patient_user_condition}  {$doctor_user_condition}  {$clinic_condition} {$search_condition} AND {$clinics_table}.hub_admin_email = '{$hubadminemail}'";
-		} elseif ( $this->getLoginUserRole() == $this->getClinicAdminRole() ) {
-			$common_query = " FROM  {$patient_encounter_table}
-			LEFT JOIN {$users_table} doctors
-				   ON {$patient_encounter_table}.doctor_id = doctors.id
-			LEFT JOIN {$users_table} patients
-				   ON {$patient_encounter_table}.patient_id = patients.id
-			LEFT JOIN {$clinics_table}
-				   ON {$patient_encounter_table}.clinic_id = {$clinics_table}.id 
-		 WHERE 0 = 0  {$patient_user_condition}  {$doctor_user_condition}  {$clinic_condition} {$search_condition}";
-		} else {
-			$common_query = " FROM  {$patient_encounter_table}
-		LEFT JOIN {$users_table} doctors
-			   ON {$patient_encounter_table}.doctor_id = doctors.id
-		LEFT JOIN {$users_table} patients
-			   ON {$patient_encounter_table}.patient_id = patients.id
-		LEFT JOIN {$clinics_table}
-			   ON {$patient_encounter_table}.clinic_id = {$clinics_table}.id 
-	 WHERE 0 = 0  {$patient_user_condition}  {$doctor_user_condition}  {$clinic_condition} {$search_condition}";
-		}
-		if ( $current_user->user_email == 'alex@drapersolutions.com' || $current_user->user_email == 'info@paradiseproductdevelopment.com' ) {
-			$common_query = " FROM  {$patient_encounter_table}
-		LEFT JOIN {$users_table} doctors
-			   ON {$patient_encounter_table}.doctor_id = doctors.id
-		LEFT JOIN {$users_table} patients
-			   ON {$patient_encounter_table}.patient_id = patients.id
-		LEFT JOIN {$clinics_table}
-			   ON {$patient_encounter_table}.clinic_id = {$clinics_table}.id 
-	 WHERE 0 = 0  {$patient_user_condition}  {$doctor_user_condition}  {$clinic_condition} {$search_condition}";
-
-		}
-
-
-fix after plugin are updated
-
-
-get ajax geting errors
-
-
-    because old plugin was not nonce cheking 
-
-    but updated plugin does check nonce in get request 
-
-    wp-content/plugins/kivicare-clinic-management-system/app/baseClasses/KCRoutesHandler.php
-
-    line 117 we commented this condtion check
-
-
-
-clinic doctors etc are not added
-
-    this is beacause original plugin have reuired fields that we don't have in our forms for adding clininc doctors etc
-
-    beacause of this we had to reomove those rules from it
-
-    wp-content/plugins/kivicare-clinic-management-system/app/controllers/KCDoctorController.php
-    line 284 and 285 commented 
-
-    wp-content/plugins/kivicare-clinic-management-system/app/controllers/KCPatientController.php
-    line 306 306 
-
-    wp-content/plugins/kivicare-clinic-management-system/app/controllers/KCReceptionistController.php
-    217 219 220 
-
-
-    wp-content/plugins/kivicare-clinic-management-system/app/controllers/KCSetupController.php
-    115 115
-
-
-    this changes are need or when saving we will get error of required fields
-
-
+wp-content/plugins/kiwi-care-extra/kiwi-care-extra.php
+
+kotlin
+Copy code
+
+The following hooks are used to override original scripts:
+
+```php
+add_action(
+    'admin_enqueue_scripts',
+    array( $this, 'dequeue_original_scripts' ),
+    999
+);
+
+add_action(
+    'wp_print_scripts',
+    array( $this, 'enqueue_custom_scripts' ),
+    10
+);
+
+add_action(
+    'wp_enqueue_scripts',
+    array( $this, 'enqueue_front_scripts' )
+);
+These hooks dequeue the original plugin scripts and enqueue the custom Vue.js build files instead.
+
+4. Hub Admin Functionality
+Before
+A new database field hub_admin_email was added.
+
+Most of the hub admin logic was implemented directly inside core plugin files.
+
+After
+KiwiCare does not provide enough hooks or filters to fully implement this feature externally.
+
+Core file modifications were unavoidable.
+
+All hub-admin-related changes are marked with comments:
+
+php
+Copy code
+// added custom code for hub admin.
+Core File Changes for Hub Admin
+1. Database Schema
+pgsql
+Copy code
+wp-content/plugins/kivicare-clinic-management-system/app/database/kc-clinic-db.php
+(Line 39)
+php
+Copy code
+'hub_admin_email' => 'varchar(255) NULL'
+2. Appointment Controller
+swift
+Copy code
+wp-content/plugins/kivicare-clinic-management-system/app/controllers/KCAppointmentController.php
+Line 113
+
+php
+Copy code
+global $current_user;
+get_currentuserinfo();
+$hubadminemail = (string) $current_user->user_email;
+Line 166
+
+php
+Copy code
+$user = wp_get_current_user();
+if (
+    !(in_array('kiviCare_doctor', (array) $user->roles)) &&
+    !(in_array('kiviCare_clinic_admin', (array) $user->roles)) &&
+    !(in_array('kiviCare_patient', (array) $user->roles)) &&
+    ($current_user->user_email == 'alex@drapersolutions.com' ||
+     $current_user->user_email == 'info@paradiseproductdevelopment.com')
+) {
+    $query .= " AND {$clinics_table}.hub_admin_email={$hubadminemail} ";
+}
+Line 936
+
+php
+Copy code
+$current_user = wp_get_current_user();
+$hubadminemail = $current_user->user_email;
+
+if (in_array('hub', (array) $current_user->roles)) {
+    $data_filter .= " AND $clinics_table.hub_admin_email='{$hubadminemail}' ";
+}
+3. Clinic Controller
+css
+Copy code
+wp-content/plugins/kivicare-clinic-management-system/app/controllers/KCClinicController.php
+(Line 48)
+php
+Copy code
+$current_user = wp_get_current_user();
+$hubadminemail = (string) $current_user->user_email;
+
+if (
+    $current_user->user_email == 'alex@drapersolutions.com' ||
+    $current_user->user_email == 'info@paradiseproductdevelopment.com'
+) {
+    $condition = " WHERE 0=0";
+} else {
+    $condition = " WHERE clinic.hub_admin_email='".$hubadminemail."'";
+}
+4. Home Controller
+css
+Copy code
+wp-content/plugins/kivicare-clinic-management-system/app/controllers/KCHomeController.php
+(Line 471)
+php
+Copy code
+global $current_user;
+get_currentuserinfo();
+$hubadminemail = (string) $current_user->user_email;
+
+if (
+    $current_user_login == 'administrator' &&
+    ($current_user->user_email !== 'alex@drapersolutions.com' ||
+     $current_user->user_email !== 'info@paradiseproductdevelopment.com')
+) {
+    $clinic_condition = " AND hub_admin_email =".$hubadminemail;
+}
+5. Patient Encounter Controller
+css
+Copy code
+wp-content/plugins/kivicare-clinic-management-system/app/controllers/KCPatientEncounterController.php
+(Line 176)
+Custom SQL conditions added to filter data by hub_admin_email
+
+Logic varies based on role:
+
+Administrator
+
+Clinic Admin
+
+Hub Admin
+
+Special exceptions for specific admin email IDs
+
+5. Fixes After Plugin Updates
+5.1 GET / AJAX Requests Returning Errors
+Cause
+Older versions of KiwiCare did not validate nonces.
+
+Updated versions now enforce nonce validation for GET requests.
+
+Temporary Fix
+Nonce validation was commented out in:
+
+css
+Copy code
+wp-content/plugins/kivicare-clinic-management-system/app/baseClasses/KCRoutesHandler.php
+(Line 117)
+5.2 Clinic Doctors / Patients Not Being Added
+Cause
+Updated plugin introduced required fields.
+
+These required fields are not present in custom forms.
+
+This caused validation errors when saving data.
+
+Fix
+Required field validation rules were commented out in core controllers.
+
+Modified Files
+Doctor Controller
+css
+Copy code
+wp-content/plugins/kivicare-clinic-management-system/app/controllers/KCDoctorController.php
+(Line 284, 285)
+Patient Controller
+css
+Copy code
+wp-content/plugins/kivicare-clinic-management-system/app/controllers/KCPatientController.php
+(Line 306)
+Receptionist Controller
+css
+Copy code
+wp-content/plugins/kivicare-clinic-management-system/app/controllers/KCReceptionistController.php
+(Line 217, 219, 220)
+Setup Controller
+css
+Copy code
+wp-content/plugins/kivicare-clinic-management-system/app/controllers/KCSetupController.php
+(Line 115)
+These changes are required; otherwise, saving data results in validation errors due to missing required fields.
+
+End of Document
