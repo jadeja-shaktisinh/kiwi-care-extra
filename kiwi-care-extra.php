@@ -6,6 +6,7 @@
  * Author: yourname
  * Text Domain: kiwi-care-extra
  * Domain Path: /languages
+ * Requires Plugins:  kivicare-clinic-management-system
  **/
 
 
@@ -13,6 +14,10 @@ if ( ! defined( 'KIVI_CARE_PREFIX' ) ) {
 	define( 'KIVI_CARE_PREFIX', 'kiviCare_' );
 }
 use App\baseClasses\KCBase;
+
+if ( ! class_exists( 'KCBase' ) ) {
+	return;
+}
 class KiwiCareExtra extends KCBase {
 	public $plugin_url;
 
@@ -30,7 +35,11 @@ class KiwiCareExtra extends KCBase {
 			10
 		);
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_front_scripts' ) );
-		
+		add_filter(
+			'kcpro_save_clinic',
+			array( $this, 'kcAddToAllDoctors' ),
+			10
+		);
 	}
 
 
@@ -50,7 +59,7 @@ class KiwiCareExtra extends KCBase {
 		// Dequeue and deregister dashboard scripts (enqueued)
 		wp_dequeue_script( 'kc_js_bundle' );
 		wp_deregister_script( 'kc_js_bundle' );
-		
+
 		// Dequeue and deregister dashboard styles (enqueued)
 		wp_dequeue_style( 'kc_app_min_style' );
 		wp_deregister_style( 'kc_app_min_style' );
@@ -62,7 +71,7 @@ class KiwiCareExtra extends KCBase {
 			return;
 		}
 
-		$js_url = plugins_url( 'assets/js/', __FILE__ );
+		$js_url  = plugins_url( 'assets/js/', __FILE__ );
 		$css_url = plugins_url( 'assets/css/', __FILE__ );
 
 		// Force register and enqueue right before printing
@@ -87,14 +96,14 @@ class KiwiCareExtra extends KCBase {
 	}
 
 	public function enqueue_front_scripts() {
-		
+
 		$localizeArray = $this->getLocalizeScriptData( 'frontend' );
-		
+
 		// Deregister original frontend assets (these are only registered, not enqueued)
 		wp_deregister_style( 'kc_front_app_min_style' );
-		wp_deregister_script('kc_front_js_bundle');
+		wp_deregister_script( 'kc_front_js_bundle' );
 
-		$js_url = plugins_url( 'assets/js/', __FILE__ );
+		$js_url  = plugins_url( 'assets/js/', __FILE__ );
 		$css_url = plugins_url( 'assets/css/', __FILE__ );
 
 		// Register custom frontend assets with original handles
@@ -106,12 +115,12 @@ class KiwiCareExtra extends KCBase {
 			true
 		);
 
-		wp_register_style( 
-			'kc_front_app_min_style', 
-			$css_url . 'front-app.min.css', 
-			array(), 
+		wp_register_style(
+			'kc_front_app_min_style',
+			$css_url . 'front-app.min.css',
+			array(),
 			'3.0.8',
-			false 
+			false
 		);
 
 		// Localize the frontend script
@@ -195,6 +204,11 @@ class KiwiCareExtra extends KCBase {
 	public function kcGetAppointmentTimeFormatOption() {
 		$data = get_option( KIVI_CARE_PREFIX . 'appointment_time_format', true );
 		return gettype( $data ) != 'boolean' ? $data : 'off';
+	}
+
+	public function kcAddToAllDoctors( $data ) {
+				do_action( 'add_to_all_doctors', $data['id'] );
+				return $data;
 	}
 }
 
