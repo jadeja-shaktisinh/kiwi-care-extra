@@ -15,7 +15,7 @@ if ( ! defined( 'KIVI_CARE_PREFIX' ) ) {
 }
 use App\baseClasses\KCBase;
 
-if ( ! class_exists( 'KCBase' ) ) {
+if ( ! class_exists( 'App\baseClasses\KCBase' ) ) {
 	return;
 }
 class KiwiCareExtra extends KCBase {
@@ -35,8 +35,8 @@ class KiwiCareExtra extends KCBase {
 			10
 		);
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_front_scripts' ) );
-		add_filter(
-			'kcpro_save_clinic',
+		add_action(
+			'kcpro_clinic_save',
 			array( $this, 'kcAddToAllDoctors' ),
 			10
 		);
@@ -206,9 +206,10 @@ class KiwiCareExtra extends KCBase {
 		return gettype( $data ) != 'boolean' ? $data : 'off';
 	}
 
-	public function kcAddToAllDoctors( $data ) {
-				do_action( 'add_to_all_doctors', $data['id'] );
-				return $data;
+	public function kcAddToAllDoctors( $id ) {
+
+				error_log( 'kcAddToAllDoctors called with id: ' . $id );
+				do_action( 'add_to_all_doctors', $id );
 	}
 }
 
